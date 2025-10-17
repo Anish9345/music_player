@@ -2,9 +2,7 @@ from flask import Flask, render_template, jsonify, url_for
 import os
 
 app = Flask(__name__)
-@app.route('/')
-def home():
-    return 'Hello, Music Player!'
+
 # Path to your songs and thumbnails
 SONG_FOLDER = os.path.join("static", "songs")
 THUMB_FOLDER = os.path.join("static", "thumbnails")
@@ -23,7 +21,7 @@ def get_songs():
             if os.path.exists(thumb_path):
                 thumb_url = url_for('static', filename=f"thumbnails/{thumb_filename}")
             else:
-                thumb_url = url_for('static', filename="default.jpg")  # default image
+                thumb_url = url_for('static', filename="thumbnails/default.jpg")  # default image
             
             songs_list.append({
                 "name": song_name,
@@ -46,4 +44,3 @@ def songs_api():
 if __name__ == "__main__":
     # Use 0.0.0.0 for Render deployment
     app.run(host='0.0.0.0', port=5000, debug=True)
-
