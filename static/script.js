@@ -21,15 +21,16 @@ const savedPlaylistsDiv = document.getElementById('savedPlaylists');
 const showQueueBtn = document.getElementById('showQueueBtn');
 const clearQueueBtn = document.getElementById('clearQueueBtn');
 
-let songs = [];             
+let songs = [];             // array of {filename, name, file, thumbnail}
 let currentIndex = -1;
 let isPlaying = false;
 let isLoop = false;
 let isShuffle = false;
-let queue = [];             
-let playlistQueue = null;   
-let playlists = {};         
+let queue = [];             // array of indices
+let playlistQueue = null;   // when playing a saved playlist (array of filenames)
+let playlists = {};         // saved playlists (name -> array of filenames)
 
+// Helper - format seconds to mm:ss
 function fmt(t){
   if (isNaN(t)) return '0:00';
   const m = Math.floor(t / 60);
@@ -37,6 +38,7 @@ function fmt(t){
   return `${m}:${s}`;
 }
 
+// Fetch songs from backend
 async function loadSongs(){
   const res = await fetch('/songs');
   songs = await res.json();
@@ -44,6 +46,7 @@ async function loadSongs(){
   loadPlaylistsFromStorage();
 }
 
+// Render songs
 function renderSongList(){
   songListEl.innerHTML = '';
   songs.forEach((s, i) => {
@@ -54,7 +57,6 @@ function renderSongList(){
     const img = document.createElement('img');
     img.src = s.thumbnail;
     img.alt = s.name;
-    img.onerror = () => { img.src = '/static/default.jpg'; };
 
     const meta = document.createElement('div');
     meta.className = 'song-meta';
@@ -92,6 +94,7 @@ function renderSongList(){
     li.appendChild(meta);
     li.appendChild(controls);
 
+    // click entire item to play
     li.onclick = () => playSong(i);
 
     songListEl.appendChild(li);
@@ -99,21 +102,22 @@ function renderSongList(){
   highlightCurrent();
 }
 
+// Play a song by index
 function playSong(index){
   if (index < 0 || index >= songs.length) return;
   currentIndex = index;
-  playlistQueue = null; 
+  playlistQueue = null; // stop playlist sequential if user directly chose
   audio.src = songs[index].file;
-  audio.play().catch(()=>{});
+  audio.play().catch(()=>{}); // may return promise
   isPlaying = true;
   updateUIForSong();
 }
 
+// Update UI when a song is loaded/played
 function updateUIForSong(){
   if (currentIndex >= 0 && songs[currentIndex]){
     currentTitle.textContent = songs[currentIndex].name;
     thumb.src = songs[currentIndex].thumbnail;
-    thumb.onerror = () => { thumb.src = '/static/default.jpg'; };
   } else {
     currentTitle.textContent = 'No song selected';
     thumb.src = '/static/default.jpg';
@@ -122,6 +126,7 @@ function updateUIForSong(){
   playBtn.textContent = isPlaying ? '⏸' : '▶';
 }
 
+// Highlight current playing in list
 function highlightCurrent(){
   document.querySelectorAll('.song-item').forEach(li => li.classList.remove('playing'));
   if (currentIndex >= 0){
@@ -130,8 +135,10 @@ function highlightCurrent(){
   }
 }
 
+// Toggle play/pause
 function togglePlay(){
   if (!audio.src) {
+    // if nothing loaded, play first
     if (songs.length) playSong(0);
     return;
   }
@@ -145,6 +152,7 @@ function togglePlay(){
   playBtn.textContent = isPlaying ? '⏸' : '▶';
 }
 
+// Prev song
 function prevSong(){
   if (queue.length > 0){
     const idx = queue.pop();
@@ -160,7 +168,9 @@ function prevSong(){
   playSong(next);
 }
 
+// Next song (considers queue and playlist queue)
 function nextSong(){
+  // queue has priority (FIFO)
   if (queue.length > 0){
     const idx = queue.shift();
     playSong(idx);
@@ -168,6 +178,7 @@ function nextSong(){
   }
 
   if (playlistQueue && playlistQueue.length > 0){
+    // playlistQueue stores filenames; find next filename index in songs
     const currentFile = currentIndex >=0 ? songs[currentIndex].filename : null;
     let pos = -1;
     if (currentFile) pos = playlistQueue.indexOf(currentFile);
@@ -177,11 +188,14 @@ function nextSong(){
       const nextIdx = songs.findIndex(s => s.filename === nextFilename);
       if (nextIdx !== -1) { playSong(nextIdx); return; }
     } else {
+      // If playlist ended
       if (isLoop) {
+        // loop the playlist
         const nextFilename = playlistQueue[0];
         const nextIdx = songs.findIndex(s => s.filename === nextFilename);
         if (nextIdx !== -1) { playSong(nextIdx); return; }
       } else {
+        // stop
         audio.pause();
         isPlaying = false;
         playBtn.textContent = '▶';
@@ -195,7 +209,9 @@ function nextSong(){
     return;
   }
 
+  // normal linear next
   let next = (currentIndex + 1) % songs.length;
+  // if not loop and we've returned to start, stop at end
   if (!isLoop && next === 0 && currentIndex === songs.length - 1) {
     audio.pause();
     isPlaying = false;
@@ -205,22 +221,26 @@ function nextSong(){
   playSong(next);
 }
 
+// Add index to queue
 function addToQueue(index){
   queue.push(index);
   alert(`${songs[index].name} added to queue`);
 }
 
+// Shuffle toggle
 function toggleShuffle(){
   isShuffle = !isShuffle;
   shuffleBtn.classList.toggle('active', isShuffle);
 }
 
+// Loop toggle (affects audio.loop too)
 function toggleLoop(){
   isLoop = !isLoop;
   audio.loop = isLoop;
   loopBtn.classList.toggle('active', isLoop);
 }
 
+// Update progress UI
 audio.addEventListener('timeupdate', () => {
   const cur = audio.currentTime;
   const dur = audio.duration || 0;
@@ -230,30 +250,36 @@ audio.addEventListener('timeupdate', () => {
   durationEl.textContent = fmt(dur);
 });
 
+// Seek by changing progress input
 progress.addEventListener('input', (e) => {
   const pct = e.target.value;
   const dur = audio.duration || 0;
   audio.currentTime = dur * (pct / 100);
 });
 
+// When metadata loaded (duration known)
 audio.addEventListener('loadedmetadata', () => {
   durationEl.textContent = fmt(audio.duration);
 });
 
+// When track ends
 audio.addEventListener('ended', () => {
   if (!audio.loop) nextSong();
 });
 
+// Volume control
 volumeEl.addEventListener('input', (e) => {
   audio.volume = e.target.value;
 });
 
+// Keyboard shortcuts
 document.addEventListener('keydown', (e) => {
   if (e.code === 'Space') { e.preventDefault(); togglePlay(); }
   if (e.code === 'ArrowRight') nextSong();
   if (e.code === 'ArrowLeft') prevSong();
 });
 
+// Queue management UI
 showQueueBtn.onclick = () => {
   if (queue.length === 0) { alert('Queue empty'); return; }
   const names = queue.map(i => songs[i].name).join('\n');
@@ -264,15 +290,18 @@ clearQueueBtn.onclick = () => {
   alert('Queue cleared');
 };
 
+// Play/pause/prev/next buttons
 playBtn.onclick = togglePlay;
 prevBtn.onclick = prevSong;
 nextBtn.onclick = nextSong;
 shuffleBtn.onclick = toggleShuffle;
 loopBtn.onclick = toggleLoop;
 
+// Select/Deselect checkboxes
 selectAllBtn.onclick = () => document.querySelectorAll('.checkbox').forEach(cb => cb.checked = true);
 deselectAllBtn.onclick = () => document.querySelectorAll('.checkbox').forEach(cb => cb.checked = false);
 
+// Playlists - save selected songs as new playlist (stored by filenames)
 function loadPlaylistsFromStorage(){
   const raw = localStorage.getItem('mp_playlists');
   playlists = raw ? JSON.parse(raw) : {};
@@ -281,7 +310,6 @@ function loadPlaylistsFromStorage(){
 function savePlaylistsToStorage(){
   localStorage.setItem('mp_playlists', JSON.stringify(playlists));
 }
-// Render saved playlists
 function renderSavedPlaylists(){
   savedPlaylistsDiv.innerHTML = '';
   const keys = Object.keys(playlists);
@@ -294,10 +322,8 @@ function renderSavedPlaylists(){
     pDiv.style.display = 'flex';
     pDiv.style.gap = '8px';
     pDiv.style.marginTop = '6px';
-
     const lbl = document.createElement('div');
     lbl.textContent = name;
-
     const playBtn = document.createElement('button');
     playBtn.textContent = 'Play';
     playBtn.className = 'small';
@@ -306,13 +332,7 @@ function renderSavedPlaylists(){
     const delBtn = document.createElement('button');
     delBtn.textContent = 'Delete';
     delBtn.className = 'small';
-    delBtn.onclick = () => {
-      if (confirm(`Delete playlist "${name}"?`)) {
-        delete playlists[name];
-        savePlaylistsToStorage();
-        renderSavedPlaylists();
-      }
-    };
+    delBtn.onclick = () => { if (confirm(`Delete playlist "${name}"?`)){ delete playlists[name]; savePlaylistsToStorage(); renderSavedPlaylists(); }};
 
     pDiv.appendChild(lbl);
     pDiv.appendChild(playBtn);
@@ -325,7 +345,6 @@ function renderSavedPlaylists(){
 createPlaylistBtn.onclick = () => {
   const name = playlistNameInput.value.trim();
   if (!name) return alert('Enter a playlist name');
-
   const checked = Array.from(document.querySelectorAll('.checkbox'))
     .filter(cb => cb.checked)
     .map(cb => songs[Number(cb.dataset.index)].filename);
@@ -343,23 +362,17 @@ createPlaylistBtn.onclick = () => {
 function playSavedPlaylist(name){
   const list = playlists[name];
   if (!list || list.length === 0) return alert('Playlist empty');
-
   // Set playlistQueue to the filenames array
   playlistQueue = list.slice();
-
-  // Find first available song in songs
+  // Find first file in songs and play it
   const idx = songs.findIndex(s => s.filename === playlistQueue[0]);
   if (idx !== -1){
     playSong(idx);
   } else {
     alert('Some files from the playlist are missing in the songs folder.');
-    // Remove missing files from playlistQueue
-    playlistQueue = playlistQueue.filter(f => songs.findIndex(s => s.filename === f) !== -1);
   }
-};
+}
 
-// Auto-load songs and playlists on page load
+// Auto-load
 window.onload = loadSongs;
 
-// Update thumbnail fallback for missing images
-thumb.onerror = () => { thumb.src = '/static/default.jpg'; };
