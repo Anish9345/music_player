@@ -1,58 +1,75 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Music Player 🎵</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Interactive Music Player</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <div class="container">
-        <!-- Currently Playing Section -->
-        <div class="now-playing">
-            <img id="current-thumbnail" src="{{ songs[0]['thumbnail'] if songs else '' }}" alt="Current Thumbnail">
-            <p id="current-song-name">{{ songs[0]['name'] if songs else 'No Song Playing' }}</p>
-            <audio id="audio-player" controls autoplay>
-                {% if songs %}
-                <source id="audio-source" src="{{ songs[0]['file'] }}" type="audio/mpeg">
-                {% endif %}
-                Your browser does not support the audio element.
-            </audio>
+  <div class="app">
+    <header>
+      <h1>🎧 Interactive Music Player</h1>
+    </header>
+
+    <main>
+      <section class="left">
+        <div class="controls-top">
+          <img id="thumb" src="/static/default.jpg" alt="thumb">
+          <div class="track-info">
+            <div id="currentTitle">No song selected</div>
+            <div id="currentArtist"></div>
+          </div>
         </div>
 
-        <!-- Song List -->
-        <div class="song-list">
-            {% for song in songs %}
-            <div class="song-item" data-src="{{ song['file'] }}" data-name="{{ song['name'] }}" data-thumb="{{ song['thumbnail'] }}">
-                <img src="{{ song['thumbnail'] }}" alt="{{ song['name'] }}">
-                <p class="song-name">{{ song['name'] }}</p>
-            </div>
-            {% endfor %}
+        <div id="controls">
+          <button id="prevBtn" title="Previous">⏮</button>
+          <button id="playBtn" title="Play/Pause">▶</button>
+          <button id="nextBtn" title="Next">⏭</button>
+          <button id="shuffleBtn" title="Shuffle">🔀</button>
+          <button id="loopBtn" title="Loop">🔁</button>
         </div>
-    </div>
 
-    <script>
-        // JS to handle song switching
-        const audio = document.getElementById("audio-player");
-        const audioSource = document.getElementById("audio-source");
-        const currentName = document.getElementById("current-song-name");
-        const currentThumb = document.getElementById("current-thumbnail");
-        const songItems = document.querySelectorAll(".song-item");
+        <div id="progressWrap">
+          <span id="currentTime">0:00</span>
+          <input id="progress" type="range" min="0" max="100" value="0">
+          <span id="duration">0:00</span>
+        </div>
 
-        songItems.forEach(item => {
-            item.addEventListener("click", () => {
-                const src = item.getAttribute("data-src");
-                const name = item.getAttribute("data-name");
-                const thumb = item.getAttribute("data-thumb");
+        <div id="volumeWrap">
+          <label>🔉</label>
+          <input id="volume" type="range" min="0" max="1" step="0.01" value="0.8">
+        </div>
 
-                audioSource.src = src;
-                audio.load();
-                audio.play();
+        <div class="queue-controls">
+          <button id="showQueueBtn">Show Queue</button>
+          <button id="clearQueueBtn">Clear Queue</button>
+        </div>
 
-                currentName.textContent = name;
-                currentThumb.src = thumb;
-            });
-        });
-    </script>
+        <div class="playlist-creator">
+          <input id="playlistNameInput" placeholder="Playlist name">
+          <button id="createPlaylistBtn">Create Playlist (from selected)</button>
+          <div id="savedPlaylists"></div>
+        </div>
+
+      </section>
+
+      <section class="right">
+        <h2>All Songs</h2>
+        <div class="song-actions">
+          <button id="selectAllBtn">Select All</button>
+          <button id="deselectAllBtn">Deselect All</button>
+        </div>
+        <ul id="songList" class="song-list"></ul>
+      </section>
+    </main>
+
+    <footer>
+      <small>Built with Flask + plain JS — playlists saved in LocalStorage</small>
+    </footer>
+  </div>
+
+  <audio id="audio" preload="metadata"></audio>
+  <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
 </html>
