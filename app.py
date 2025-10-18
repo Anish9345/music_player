@@ -1,52 +1,64 @@
 from flask import Flask, render_template, jsonify, url_for
 import os
-from urllib.parse import quote  # ✅ for URL-safe filenames
+from urllib.parse import quote
 
+# Initialize the Flask App.
+# Flask will automatically look for the 'static' and 'templates' folders.
 app = Flask(__name__)
 
-# Path to your songs and thumbnails
-SONG_FOLDER = os.path.join("static", "songs")
-THUMB_FOLDER = os.path.join("static", "thumbnails")
+# Define the path to your songs directory within the 'static' folder
+SONGS_DIR = os.path.join(app.static_folder, "songs")
 
-# Helper function to load songs
 def get_songs():
+    """Scans the songs directory and creates a list of songs with their details."""
     songs_list = []
-    for filename in os.listdir(SONG_FOLDER):
-        if filename.lower().endswith(('.mp3', '.wav', '.ogg')):
-            song_name = os.path.splitext(filename)[0]  # Song name from filename
-            
-            # ✅ Encode the filename for safe URL usage (handles spaces, Hindi, etc.)
-            safe_filename = quote(filename)
+    # Check if the songs directory actually exists
+    if not os.path.isdir(SONGS_DIR):
+        print(f"Warning: The directory '{SONGS_DIR}' was not found.")
+        return []
 
-            # ✅ Use encoded filename for static path
-            song_url = f"/static/songs/{safe_filename}"
-            
-            # Check for matching thumbnail (same name as song)
+    for filename in os.listdir(SONGS_DIR):
+        # Process only audio files
+        if filename.lower().endswith(('.mp3', '.wav', '.ogg')):
+            # Get the song name without the file extension
+            song_name = os.path.splitext(filename)[0]
+
+            # Generate a URL-safe path for the song file
+            song_url = url_for('static', filename=f'songs/{quote(filename)}')
+
+            # --- FIX: Look for the thumbnail in the SAME folder as the song ---
             thumb_filename = f"{song_name}.jpg"
-            thumb_path = os.path.join(THUMB_FOLDER, thumb_filename)
+            thumb_path = os.path.join(SONGS_DIR, thumb_filename)
+
             if os.path.exists(thumb_path):
-                thumb_url = url_for('static', filename=f"thumbnails/{thumb_filename}")
+                # If a matching thumbnail is found, use it
+                thumb_url = url_for('static', filename=f'songs/{quote(thumb_filename)}')
             else:
-                thumb_url = url_for('static', filename="thumbnails/default.jpg")  # default image
-            
+                # Otherwise, fall back to a default thumbnail.
+                # Please add a 'default.jpg' to your 'static/songs' folder.
+                thumb_url = url_for('static', filename='songs/default.jpg')
+
             songs_list.append({
-                "name": song_name,      # Display name (can include Hindi/spaces)
-                "file": song_url,       # Encoded song URL
-                "thumbnail": thumb_url  # Thumbnail or default
+                "name": song_name,
+                "file": song_url,
+                "thumbnail": thumb_url
             })
     return songs_list
 
-# Home page
 @app.route("/")
 def index():
+    """Renders the main page from 'templates/index.html'."""
     songs = get_songs()
     return render_template("index.html", songs=songs)
 
-# API endpoint to get songs (for JS)
 @app.route("/songs")
 def songs_api():
+    """Provides the list of songs as JSON for your JavaScript file."""
     return jsonify(get_songs())
 
 if __name__ == "__main__":
-    # ✅ Use 0.0.0.0 for Render deployment
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    # Use the PORT environment variable for Render, default to 5000 for local testing
+    port = int(os.environ.get('PORT', 5000))
+    # Run on 0.0.0.0 to make it accessible for deployment
+    app.run(host='0.0.0.0', port=port)
+
