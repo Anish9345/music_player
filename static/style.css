@@ -55,7 +55,47 @@ main{display:flex; gap:20px}
 
 button.small{padding:6px 8px; font-size:0.85rem}
 footer{margin-top:14px; color:var(--muted); text-align:center}
+
+/* Desktop responsive */
 @media (max-width:880px){
   main{flex-direction:column}
   .right{width:100%}
+}
+
+/* =======================
+   Mobile-friendly song list
+======================= */
+@media (max-width:600px){
+  .song-list{
+    display:flex;       /* horizontal scroll */
+    flex-wrap:nowrap;   /* keep one line */
+    overflow-x:auto;
+    gap:8px;
+    max-height:none;    /* remove vertical scroll */
+  }
+
+  .song-item{
+    flex:0 0 auto;       /* fixed width for scroll */
+    width:120px;
+    flex-direction:column; /* thumbnail on top, name below */
+    align-items:center;
+    margin-bottom:0;
+  }
+
+  .song-item img{
+    width:100px;
+    height:100px;
+  }
+
+  .song-name{
+    font-size:0.85rem;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    text-align:center;
+  }
+
+  /* Optional: scrollbar styling */
+  .song-list::-webkit-scrollbar{height:6px}
+  .song-list::-webkit-scrollbar-thumb{background:#555;border-radius:3px}
 }
