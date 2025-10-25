@@ -21,14 +21,14 @@ const savedPlaylistsDiv = document.getElementById('savedPlaylists');
 const showQueueBtn = document.getElementById('showQueueBtn');
 const clearQueueBtn = document.getElementById('clearQueueBtn');
 
-let songs = [];             // array of {filename, name, file, thumbnail}
+let songs =; // array of {filename, name, file, thumbnail}
 let currentIndex = -1;
 let isPlaying = false;
 let isLoop = false;
 let isShuffle = false;
-let queue = [];             // array of indices
-let playlistQueue = null;   // when playing a saved playlist (array of filenames)
-let playlists = {};         // saved playlists (name -> array of filenames)
+let queue =; // array of indices
+let playlistQueue = null; // when playing a saved playlist (array of filenames)
+let playlists = {}; // saved playlists (name -> array of filenames)
 
 // Helper - format seconds to mm:ss
 function fmt(t){
@@ -104,7 +104,9 @@ function renderSongList(){
 
 // Play a song by index
 function playSong(index){
-  if (index < 0 || index >= songs.length) return;
+  if (index < 0 |
+
+| index >= songs.length) return;
   currentIndex = index;
   playlistQueue = null; // stop playlist sequential if user directly chose
   audio.src = songs[index].file;
@@ -123,7 +125,7 @@ function updateUIForSong(){
     thumb.src = '/static/default.jpg';
   }
   highlightCurrent();
-  playBtn.textContent = isPlaying ? '⏸' : '▶';
+  playBtn.textContent = isPlaying? '⏸' : '▶';
 }
 
 // Highlight current playing in list
@@ -149,7 +151,7 @@ function togglePlay(){
     audio.pause();
     isPlaying = false;
   }
-  playBtn.textContent = isPlaying ? '⏸' : '▶';
+  playBtn.textContent = isPlaying? '⏸' : '▶';
 }
 
 // Prev song
@@ -179,21 +181,21 @@ function nextSong(){
 
   if (playlistQueue && playlistQueue.length > 0){
     // playlistQueue stores filenames; find next filename index in songs
-    const currentFile = currentIndex >=0 ? songs[currentIndex].filename : null;
+    const currentFile = currentIndex >=0? songs[currentIndex].filename : null;
     let pos = -1;
     if (currentFile) pos = playlistQueue.indexOf(currentFile);
     const nextPos = pos + 1;
     if (nextPos < playlistQueue.length){
       const nextFilename = playlistQueue[nextPos];
       const nextIdx = songs.findIndex(s => s.filename === nextFilename);
-      if (nextIdx !== -1) { playSong(nextIdx); return; }
+      if (nextIdx!== -1) { playSong(nextIdx); return; }
     } else {
       // If playlist ended
       if (isLoop) {
         // loop the playlist
-        const nextFilename = playlistQueue[0];
+        const nextFilename = playlistQueue;
         const nextIdx = songs.findIndex(s => s.filename === nextFilename);
-        if (nextIdx !== -1) { playSong(nextIdx); return; }
+        if (nextIdx!== -1) { playSong(nextIdx); return; }
       } else {
         // stop
         audio.pause();
@@ -229,13 +231,13 @@ function addToQueue(index){
 
 // Shuffle toggle
 function toggleShuffle(){
-  isShuffle = !isShuffle;
+  isShuffle =!isShuffle;
   shuffleBtn.classList.toggle('active', isShuffle);
 }
 
 // Loop toggle (affects audio.loop too)
 function toggleLoop(){
-  isLoop = !isLoop;
+  isLoop =!isLoop;
   audio.loop = isLoop;
   loopBtn.classList.toggle('active', isLoop);
 }
@@ -243,8 +245,10 @@ function toggleLoop(){
 // Update progress UI
 audio.addEventListener('timeupdate', () => {
   const cur = audio.currentTime;
-  const dur = audio.duration || 0;
-  const pct = dur ? (cur / dur) * 100 : 0;
+  const dur = audio.duration |
+
+| 0;
+  const pct = dur? (cur / dur) * 100 : 0;
   progress.value = pct;
   currentTimeEl.textContent = fmt(cur);
   durationEl.textContent = fmt(dur);
@@ -253,7 +257,9 @@ audio.addEventListener('timeupdate', () => {
 // Seek by changing progress input
 progress.addEventListener('input', (e) => {
   const pct = e.target.value;
-  const dur = audio.duration || 0;
+  const dur = audio.duration |
+
+| 0;
   audio.currentTime = dur * (pct / 100);
 });
 
@@ -286,7 +292,7 @@ showQueueBtn.onclick = () => {
   alert('Upcoming in queue:\n' + names);
 };
 clearQueueBtn.onclick = () => {
-  queue = [];
+  queue =;
   alert('Queue cleared');
 };
 
@@ -304,7 +310,7 @@ deselectAllBtn.onclick = () => document.querySelectorAll('.checkbox').forEach(cb
 // Playlists - save selected songs as new playlist (stored by filenames)
 function loadPlaylistsFromStorage(){
   const raw = localStorage.getItem('mp_playlists');
-  playlists = raw ? JSON.parse(raw) : {};
+  playlists = raw? JSON.parse(raw) : {};
   renderSavedPlaylists();
 }
 function savePlaylistsToStorage(){
@@ -346,8 +352,8 @@ createPlaylistBtn.onclick = () => {
   const name = playlistNameInput.value.trim();
   if (!name) return alert('Enter a playlist name');
   const checked = Array.from(document.querySelectorAll('.checkbox'))
-    .filter(cb => cb.checked)
-    .map(cb => songs[Number(cb.dataset.index)].filename);
+   .filter(cb => cb.checked)
+   .map(cb => songs[Number(cb.dataset.index)].filename);
 
   if (checked.length === 0) return alert('Select some songs first');
 
@@ -361,12 +367,14 @@ createPlaylistBtn.onclick = () => {
 // Play saved playlist by name
 function playSavedPlaylist(name){
   const list = playlists[name];
-  if (!list || list.length === 0) return alert('Playlist empty');
+  if (!list |
+
+| list.length === 0) return alert('Playlist empty');
   // Set playlistQueue to the filenames array
   playlistQueue = list.slice();
   // Find first file in songs and play it
-  const idx = songs.findIndex(s => s.filename === playlistQueue[0]);
-  if (idx !== -1){
+  const idx = songs.findIndex(s => s.filename === playlistQueue);
+  if (idx!== -1){
     playSong(idx);
   } else {
     alert('Some files from the playlist are missing in the songs folder.');
@@ -375,4 +383,3 @@ function playSavedPlaylist(name){
 
 // Auto-load
 window.onload = loadSongs;
-
