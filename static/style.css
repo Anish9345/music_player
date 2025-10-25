@@ -9,7 +9,7 @@
 body{
   margin:0;
   font-family: Inter, system-ui, Arial, sans-serif;
-  background: linear-gradient(135deg,#071024,#0f1720);
+  background: linear-gradient(135deg,#ff6200,#ffea0a);
   color:#e5eef8;
   min-height:100vh;
 }
@@ -59,3 +59,4 @@ footer{margin-top:14px; color:var(--muted); text-align:center}
   main{flex-direction:column}
   .right{width:100%}
 }
+
